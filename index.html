@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrastar Letras</title>
+    <style>
+        #quadro-letras {
+            width: 100%;
+            height: 500px;
+            border: 1px solid black;
+            position: relative;
+            overflow: hidden;
+        }
+        .letra {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            position: absolute; /* Posicionamento absoluto para arrastar livremente */
+        }
+
+        .vogal { /* Classe para estilizar botões das vogais */
+            color: red;
+        }
+
+        #botoes-alfabeto {
+            margin-top: 10px;
+        }
+
+        #accent-options {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .option {
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .option:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div id="quadro-letras"></div>
+<div id="botoes-alfabeto">
+    <button id="flecha-volta">←</button>
+    <button id="flecha-ida">→</button>
+</div>
+<div id="accent-options"></div> <!-- Adição da área para as opções de acento -->
+<input type="range" id="tamanhoGlobal" min="10" max="100" value="50">
+<input type="color" id="corLetra" value="#000000" placeholder="name"> <!-- Adição do input color -->
+
+<script>
+ // Seleciona os elementos do HTML
+const quadroLetras = document.getElementById('quadro-letras');
+const botoesAlfabeto = document.getElementById('botoes-alfabeto');
+const tamanhoGlobalInput = document.getElementById('tamanhoGlobal');
+const corLetraInput = document.getElementById('corLetra');
+const flechaVoltaBtn = document.getElementById('flecha-volta');
+const flechaIdaBtn = document.getElementById('flecha-ida');
+const accentOptions = document.getElementById('accent-options');
+
+// Array contendo o alfabeto
+const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+// Array para armazenar as letras adicionadas ao quadro
+const letrasAdicionadas = [];
+
+// Loop para criar botões para cada letra do alfabeto
+for (let letra of alfabeto) {
+  const botao = document.createElement('button');
+  botao.textContent = letra;
+  botao.id = letra; // Definir ID para cada botão para referência posterior
+  botao.addEventListener('click', () => {
+    criarLetra(letra); // Função para criar a letra
+    playSound(letra); // Função para reproduzir o som da letra
+  });
+  // Adiciona a classe 'vogal' aos botões das vogais
+  if (letra === 'A' || letra === 'E' || letra === 'I' || letra === 'O' || letra === 'U') {
+    botao.classList.add('vogal');
+  }
+  botoesAlfabeto.appendChild(botao);
+}
+
+// Função para criar e adicionar uma letra ao quadro
+function criarLetra(letra) {
+  const novaLetra = document.createElement('div');
+  novaLetra.textContent = letra;
+  novaLetra.classList.add('letra');
+  novaLetra.style.fontSize = tamanhoGlobalInput.value + 'px';
+  novaLetra.style.color = corLetraInput.value;
+
+  // Obtém as dimensões do quadro de letras
+  const containerHeight = quadroLetras.clientHeight;
+  const containerWidth = quadroLetras.clientWidth;
+  const letraSize = parseInt(novaLetra.style.fontSize);
+
+  // Posiciona a letra no centro inferior do quadro
+  novaLetra.style.left = `${(containerWidth - letraSize) / 2}px`;
+  novaLetra.style.top = `${containerHeight - letraSize}px`;
+
+  // Adiciona os eventos de arrastar à letra
+  novaLetra.addEventListener('touchstart', iniciarArrastar);
+  novaLetra.addEventListener('touchmove', arrastar);
+  novaLetra.addEventListener('touchend', pararArrastar);
+  novaLetra.addEventListener('mousedown', iniciarArrastar);
+  novaLetra.addEventListener('mousemove', arrastar);
+  novaLetra.addEventListener('mouseup', pararArrastar);
+  novaLetra.addEventListener('mouseleave', pararArrastar);
+
+  // Adiciona a letra ao quadro de letras e ao array de letras adicionadas
+  quadroLetras.appendChild(novaLetra);
+  letrasAdicionadas.push(novaLetra);
+}
+
+// Variáveis para o arrastar das letras
+let letraArrastada = null;
+let posicaoInicialX = 0;
+let posicaoInicialY = 0;
+
+// Função para iniciar o arrastar da letra
+function iniciarArrastar(evento) {
+  evento.preventDefault(); // Previne o comportamento padrão do evento
+  letraArrastada = evento.target; // Define a letra a ser arrastada
+  // Obtém a posição inicial do toque ou do mouse
+  posicaoInicialX = evento.touches ? evento.touches[0].clientX : evento.clientX;
+  posicaoInicialY = evento.touches ? evento.touches[0].clientY : evento.clientY;
+}
+
+// Função para arrastar a letra
+function arrastar(evento) {
+  if (letraArrastada) {
+    evento.preventDefault(); // Previne o comportamento padrão do evento
+    // Obtém a nova posição do toque ou do mouse
+    const novaPosX = evento.touches ? evento.touches[0].clientX : evento.clientX;
+    const novaPosY = evento.touches ? evento.touches[0].clientY : evento.clientY;
+    // Calcula e define a nova posição da letra
+    letraArrastada.style.left = `${letraArrastada.offsetLeft + novaPosX - posicaoInicialX}px`;
+    letraArrastada.style.top = `${letraArrastada.offsetTop + novaPosY - posicaoInicialY}px`;
+    // Atualiza as posições iniciais para a próxima iteração
+    posicaoInicialX = novaPosX;
+    posicaoInicialY = novaPosY;
+  }
+}
+
+// Função para parar o arrastar da letra
+function pararArrastar() {
+  letraArrastada = null; // Reseta a letra arrastada
+}
+
+// Evento de input para ajustar o tamanho global das letras
+tamanhoGlobalInput.addEventListener('input', () => {
+  const novoTamanho = tamanhoGlobalInput.value + 'px'; // Obtém o novo tamanho
+  // Atualiza o tamanho de todas as letras no quadro
+  const letras = document.querySelectorAll('.letra');
+  for (let letra of letras) {
+    letra.style.fontSize = novoTamanho;
+  }
+});
+
+// Evento de input para ajustar a cor global das letras
+corLetraInput.addEventListener('input', () => {
+  const novaCor = corLetraInput.value; // Obtém a nova cor
+  // Atualiza a cor de todas as letras no quadro
+  const letras = document.querySelectorAll('.letra');
+  for (let letra of letras) {
+    letra.style.color = novaCor;
+  }
+});
+
+// Evento para remover a última letra adicionada
+flechaVoltaBtn.addEventListener('click', () => {
+  if (letrasAdicionadas.length > 0) {
+    const ultimaLetra = letrasAdicionadas.pop(); // Remove a última letra do array
+    quadroLetras.removeChild(ultimaLetra); // Remove a última letra do quadro
+  }
+});
+
+// Evento para adicionar novamente a última letra removida
+flechaIdaBtn.addEventListener('click', () => {
+  if (letrasAdicionadas.length > 0) {
+    const ultimaLetra = letrasAdicionadas[letrasAdicionadas.length - 1]; // Obtém a última letra do array
+    quadroLetras.appendChild(ultimaLetra); // Adiciona a última letra novamente ao quadro
+  }
+});
+
+// Função para reproduzir o som da letra
+function playSound(letra) {
+  const audio = new Audio(`sons/${letra}.mp3`);
+  audio.play();
+}
+
+// Função para exibir as opções de acento após um intervalo de tempo
+let timer;
+
+function startTimer(letra) {
+  timer = setTimeout(() => {
+    showAccents(letra);
+  }, 1000);
+}
+
+function showAccents(letra) {
+  clearTimeout(timer);
+  accentOptions.innerHTML = "";
+  const accentedLetters = {
+    'á': 'Á',
+    'é': 'É',
+    'í': 'Í',
+    'ó': 'Ó',
+    'ú': 'Ú',
+    'â': 'Â',
+    'ê': 'Ê',
+    'î': 'Î',
+    'ô': 'Ô',
+    'û': 'Û',
+    'ã': 'Ã',
+    'õ': 'Õ',
+    'ç': 'Ç'
+  };
+  for (let [accent, accentedLetter] of Object.entries(accentedLetters)) {
+    const option = document.createElement('div');
+    option.textContent = accentedLetter;
+    option.classList.add('option');
+    option.addEventListener('click', () => {
+      insertAccent(letra, accent);
+    });
+    accentOptions.appendChild(option);
+  }
+  // Verifica se a letra está sendo arrastada antes de mostrar as opções de acento
+  if (letraArrastada) {
+    accentOptions.style.top = `${letraArrastada.offsetTop + 50}px`;
+    accentOptions.style.left = `${letraArrastada.offsetLeft}px`;
+    accentOptions.style.display = "block";
+  }
+}
+
+function insertAccent(letra, accent) {
+  clearTimeout(timer);
+  accentOptions.style.display = "none";
+  criarLetra(accent);
+}
+
+// Event listeners para as letras do alfabeto
+for (let letra of alfabeto) {
+  const botao = document.getElementById(letra);
+  botao.addEventListener('mousedown', () => {
+    startTimer(letra);
+  });
+  botao.addEventListener('mouseup', () => {
+    clearTimeout(timer);
+  });
+}
+</script>
+
+</body>
+</html>
